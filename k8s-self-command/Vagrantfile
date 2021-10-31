@@ -1,0 +1,34 @@
+Vagrant.configure("2") do |config|
+	config.vm.box = "centos7"
+	config.vm.network "private_network", ip: "192.168.34.2", name: "vboxnet0"
+	config.vm.provider "virtualbox" do |vb|
+		# 配置虚拟机为 4 个核心，6GB 内存
+		vb.cpus = 4
+		vb.memory = "6144"
+			
+		vb.gui = true
+	end
+
+	config.vm.provision "shell", inline: <<-SHELL
+	sudo yum install -y yum-utils
+
+	sudo yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+	sudo yum-config-manager --enable docker-ce-nightly
+	
+	sudo yum install -y docker-ce docker-ce-cli containerd.io
+	sudo systemctl enable docker && sudo systemctl start docker
+	cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
+enabled=1
+gpgcheck=0
+exclude=kubelet kubeadm kubectl
+EOF
+
+	  sudo yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+
+	  sudo systemctl enable --now kubelet && sudo systemctl start kubelet
+
+	SHELL
+end
